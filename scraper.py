@@ -22,7 +22,7 @@ def getRU1():
     if not res:
         raise AttributeError("HTML has been updated, desired data not found")
     lunch = clean(res[0])
-    dinner = clean(res[1])
+    dinner = clean(res[2])
     return {"lunch" : lunch, "dinner" : dinner}
 
 def getRU2():

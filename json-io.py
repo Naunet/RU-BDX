@@ -1,4 +1,3 @@
-import sys
 import json
 import scraper
 
@@ -19,7 +18,7 @@ def readJSON(filename):
     
     lunch = data['lunch']
     dinner = data['dinner']
-    print(lunch + ", " + dinner)
+    print("\tMidi : " + lunch + ",\n\tSoir : " + dinner)
 
 def updateMenus():
     res = scraper.main()
