@@ -86,10 +86,24 @@ def saveAsJSON(filename, lib):
 
 def readJSON(filename):
     f = open(filename, "r")
-    data = json.load(f) #dictionary
-    keys = data.keys()
+    data = json.load(f) # dictionary
+    #keys = data.keys()
+    #data = data.items() # tuple list
     menu = data
     print(json.dumps(menu, indent=2))
+
+def getData():
+    for res in restaurants.keys():
+        # get html data
+        url = restaurants[res]
+        html = http.request('GET', url).data
+
+        # organise html data
+        soup = BeautifulSoup(html, 'html.parser') #, from_encoding="utf-8"
+        menu = getAdvanced(soup)
+
+        # save as JSON
+        saveAsJSON(res+".json", menu)
 
 def loadAll():
     for res in restaurants.keys():
@@ -99,17 +113,5 @@ def loadAll():
         print("\n")
 
 http = urllib3.PoolManager()
-
-for res in restaurants.keys():
-    # get html data
-    url = restaurants[res]
-    html = http.request('GET', url).data
-
-    # organise html data
-    soup = BeautifulSoup(html, 'html.parser') #, from_encoding="utf-8"
-    menu = getAdvanced(soup)
-
-    # save as JSON
-    saveAsJSON(res+".json", menu)
-
+getData()
 loadAll()
