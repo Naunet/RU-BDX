@@ -2,6 +2,7 @@ import urllib3
 from bs4 import BeautifulSoup
 # BeautifulSoup4 documentation: www.crummy.com/software/BeautifulSoup/bs4/doc/
 import json
+import re
 
 restaurants = {
     "Capu": "https://www.crous-bordeaux.fr/restaurant/resto-u-le-capu/", 
@@ -12,6 +13,17 @@ restaurants = {
     "Veracruz": "https://www.crous-bordeaux.fr/restaurant/crous-cafet-le-veracruz/"
 }
 
+spam = [
+    r"(Vente (.*?) dessert], )",
+    r"(Unique(.*?) :, )"
+]
+
+spam_titles = [
+    "Desserts",
+    "CAFETERIA", 
+    "Crous Market le Vent debout"
+]
+
 def concatenate(strArray):
     res = ', '.join(map(str, strArray))
     return res
@@ -21,6 +33,12 @@ def getDate(date):
     res = res.replace("Menu du ", "")
     return res
 
+def clean(input):
+    output = input
+    for x in spam:
+        output = re.sub(x, "", output)
+    return output
+
 def getMenu(meal):
     menu = meal.string
     if not menu:
@@ -28,8 +46,12 @@ def getMenu(meal):
         chaines = meal.find_all("span", "name")
         for chaine in chaines:
             name = chaine.string
+            #Don't include information
+            if name in spam_titles:
+                continue
             info = chaine.next_sibling
-            menu[name] = concatenate(info.stripped_strings)
+            #Clean data
+            menu[name] = clean(concatenate(info.stripped_strings))
     return menu
 
 def getFirst(dates):
