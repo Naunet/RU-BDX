@@ -13,15 +13,31 @@ restaurants = {
     "Veracruz": "https://www.crous-bordeaux.fr/restaurant/crous-cafet-le-veracruz/"
 }
 
-spam = [
+covid_messages = [
     r"(Vente (.*?) dessert], )",
-    r"(Unique(.*?) :, )"
+    r"(Unique(.*?) :, )",
+    r"(, Fruits ou yaourt)"
 ]
 
-spam_titles = [
+empty_messages = [
+    "",
+    "menu non communiqué",
+    "Fermé",
+    "fermée",
+    "Pas de service"
+]
+
+cafe_titles = [
     "Desserts",
     "CAFETERIA", 
-    "Crous Market le Vent debout"
+    "Crous Market le Vent debout",
+    "Le Crous Market",
+    "Le Crous and Go"
+]
+
+conditional_titles = [
+    "Ventes à emporter",
+    "Vente à emporter"
 ]
 
 def concatenate(strArray):
@@ -33,25 +49,34 @@ def getDate(date):
     res = res.replace("Menu du ", "")
     return res
 
-def clean(input):
-    output = input
-    for x in spam:
-        output = re.sub(x, "", output)
-    return output
+def clean(chaine, cnt):
+    name = chaine.string
+    #Don't include cafe information
+    if name in cafe_titles:
+        return None, None
+    if name in conditional_titles:
+        if cnt>1:
+            return None, None
+        else:
+            name = "Menu"
+    info = chaine.next_sibling
+    res = concatenate(info.stripped_strings)
+    for x in covid_messages:
+        res = re.sub(x, "", res)
+    if res in empty_messages:
+        return None, None
+    return name, res
 
 def getMenu(meal):
     menu = meal.string
     if not menu:
         menu = dict()
         chaines = meal.find_all("span", "name")
+        cnt = len(chaines)
         for chaine in chaines:
-            name = chaine.string
-            #Don't include information
-            if name in spam_titles:
-                continue
-            info = chaine.next_sibling
-            #Clean data
-            menu[name] = clean(concatenate(info.stripped_strings))
+            name, repas = clean(chaine, cnt)
+            if name is not None:
+                menu[name] = repas
     return menu
 
 def getFirst(dates):
@@ -102,17 +127,17 @@ def getAdvanced(soup):
     return res
 
 def saveAsJSON(filename, lib):
-    f = open(filename, "w")
-    f.write(json.dumps(lib, indent=4))
-    f.close()
+    with open(filename, 'w', encoding='utf8') as json_file:
+        json.dump(lib, json_file, indent=4, ensure_ascii=False)
 
 def readJSON(filename):
-    f = open(filename, "r")
+    f = open(filename, "r", encoding='utf8')
     data = json.load(f) # dictionary
     #keys = data.keys()
     #data = data.items() # tuple list
     menu = data
-    print(json.dumps(menu, indent=2))
+    print(json.dumps(menu, indent=2, ensure_ascii=False))
+    f.close()
 
 def getData():
     for res in restaurants.keys():
