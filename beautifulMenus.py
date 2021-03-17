@@ -49,22 +49,41 @@ def getDate(date):
     res = res.replace("Menu du ", "")
     return res
 
+def extractDictionary(input):
+    res = re.sub(":,", ":", input)
+    res = res.split(":")
+    if len(res)==1:
+        return res[0] 
+    if len(res)%2!=0:
+        # Split data
+        tmp = [res[0]]
+        for substr in res[1:-1]:
+            tmp += substr.rpartition(',')[::2]
+        tmp.append(res[-1])
+        res = tmp
+    # Create dictionary
+    it = iter(res)
+    res = dict(zip(it, it))
+    return res
+
 def clean(chaine, cnt):
     name = chaine.string
-    #Don't include cafe information
+    # Exclude cafe chains
     if name in cafe_titles:
         return None, None
     if name in conditional_titles:
         if cnt>1:
             return None, None
-        else:
-            name = "Menu"
+    # Get chain data
     info = chaine.next_sibling
     res = concatenate(info.stripped_strings)
+    # Clean information
     for x in covid_messages:
         res = re.sub(x, "", res)
     if res in empty_messages:
         return None, None
+    # Extract subdictionaries
+    res = extractDictionary(res)
     return name, res
 
 def getMenu(meal):
@@ -73,10 +92,15 @@ def getMenu(meal):
         menu = dict()
         chaines = meal.find_all("span", "name")
         cnt = len(chaines)
+        pred = None
         for chaine in chaines:
             name, repas = clean(chaine, cnt)
             if name is not None:
-                menu[name] = repas
+                if repas != pred:
+                    menu[name] = repas
+                    pred = repas
+        if len(menu)==1:
+            menu = pred
     return menu
 
 def getFirst(dates):
@@ -152,6 +176,18 @@ def getData():
         # save as JSON
         saveAsJSON(res+".json", menu)
 
+def useHTMLData(res):
+    # get html data
+    f = open(res+".html", "r", encoding='utf8')
+    html = f.read()
+    f.close()
+    # organise html data
+    soup = BeautifulSoup(html, 'html.parser') #, from_encoding="utf-8"
+    menu = getAdvanced(soup)
+
+    # save as JSON
+    saveAsJSON(res+".json", menu) 
+
 def loadAll():
     for res in restaurants.keys():
         print("#####")
@@ -161,4 +197,5 @@ def loadAll():
 
 http = urllib3.PoolManager()
 getData()
+# useHTMLData("mascaret")
 loadAll()
