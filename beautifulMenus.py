@@ -99,8 +99,10 @@ def getMenu(meal):
                 if repas != pred:
                     menu[name] = repas
                     pred = repas
-        if len(menu)==1:
+        if len(menu) == 1:
             menu = pred
+        if len(menu) == 0:
+            menu = "Menu non communiqué"
     return menu
 
 def getFirst(dates):
