@@ -22,6 +22,7 @@ covid_messages = [
 empty_messages = [
     "",
     "menu non communiqué",
+    "Menu non communiqué",
     "Fermé",
     "fermée",
     "Pas de service"
@@ -101,6 +102,8 @@ def getMenu(meal):
                     pred = repas
         if len(menu)==1:
             menu = pred
+        if len(menu) == 0:
+            menu = "Menu non communiqué"
     return menu
 
 def getFirst(dates):
