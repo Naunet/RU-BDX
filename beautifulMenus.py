@@ -22,6 +22,7 @@ covid_messages = [
 empty_messages = [
     "",
     "menu non communiqué",
+    "Menu non communiqué",
     "Fermé",
     "fermée",
     "Pas de service"
