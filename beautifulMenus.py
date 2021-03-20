@@ -3,6 +3,8 @@ from bs4 import BeautifulSoup
 # BeautifulSoup4 documentation: www.crummy.com/software/BeautifulSoup/bs4/doc/
 import json
 import re
+from datetime import datetime, date
+import locale
 
 restaurants = {
     "Capu": "https://www.crous-bordeaux.fr/restaurant/resto-u-le-capu/", 
@@ -16,14 +18,17 @@ restaurants = {
 covid_messages = [
     r"(Vente (.*?) dessert], )",
     r"(Unique(.*?) :, )",
-    r"(, Fruits ou yaourt)"
+    r"(, Fruits ou yaourt)",
+    r"(Le service (.*?) heures)"
 ]
 
 empty_messages = [
     "",
     "menu non communiqué",
+    "Menu non communiqué",
     "Fermé",
     "fermée",
+    "FERMÉ",
     "Pas de service"
 ]
 
@@ -45,9 +50,20 @@ def concatenate(strArray):
     return res
 
 def getDate(date):
-    res = date.string
-    res = res.replace("Menu du ", "")
-    return res
+    date_str = date.string
+    date_str = date_str.replace("Menu du ", "")
+    
+    format_str = '%A %d %B %Y'
+    
+    #change locale to fr
+    lc = locale.setlocale(locale.LC_TIME)
+    try:
+        locale.setlocale(locale.LC_TIME, 'fr_FR.utf8')
+        datetime_obj = datetime.strptime(date_str, format_str)
+    finally:
+        locale.setlocale(locale.LC_TIME, lc)
+
+    return str(datetime_obj.date())
 
 def extractDictionary(input):
     res = re.sub(":,", ":", input)
@@ -101,11 +117,22 @@ def getMenu(meal):
                     pred = repas
         if len(menu)==1:
             menu = pred
+        if len(menu)==0:
+            menu = "Menu non communiqué"
     return menu
 
-def getFirst(dates):
+def getToday(dates):
     res = dict()
-    date = dates[0]
+    allDates = getAll(dates)
+    today = str(date.today())
+    if today in allDates.keys():
+        res[today] = allDates[today]
+    else:
+        res[today] = {"lunch": "Pas de service", 
+                      "dinner": "Pas de service"}
+    return res
+
+def getFromDate(date):
     # simplify date structure
     day = getDate(date)
     # get daily meals 
@@ -119,25 +146,12 @@ def getFirst(dates):
     menu = dict()
     menu["lunch"] = lunch
     menu["dinner"] = dinner
-    res[day] = menu
-    return res
+    return day, menu
 
 def getAll(dates):
     res = dict()
     for date in dates:
-        # simplify date structure
-        day = getDate(date)
-        # get daily meals 
-        meals = date.next_sibling.next_sibling
-        meals = meals.find_all("div", "content-repas")
-        # simplify lunch menu
-        lunch = getMenu(meals[1])
-        # simplify dinner menu
-        dinner = getMenu(meals[2])
-        # save menu
-        menu = dict()
-        menu["lunch"] = lunch
-        menu["dinner"] = dinner
+        day, menu = getFromDate(date)
         res[day] = menu
     return res
 
@@ -146,8 +160,8 @@ def getAdvanced(soup):
     menu_repas = soup.find(id="menu-repas")
     # get each date section
     dates = menu_repas.find_all('h3')
-    #res = getAll(dates)
-    res = getFirst(dates)
+    # res = getAll(dates)
+    res = getToday(dates)
     return res
 
 def saveAsJSON(filename, lib):
