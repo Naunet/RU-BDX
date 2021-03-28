@@ -3,8 +3,10 @@ from bs4 import BeautifulSoup
 # BeautifulSoup4 documentation: www.crummy.com/software/BeautifulSoup/bs4/doc/
 import json
 import re
-from datetime import datetime, date
-import locale
+import sys
+from datetime import datetime, date, timedelta
+
+import dateparser
 
 restaurants = {
     "Capu": "https://www.crous-bordeaux.fr/restaurant/resto-u-le-capu/", 
@@ -54,14 +56,10 @@ def getDate(date):
     date_str = date_str.replace("Menu du ", "")
     
     format_str = '%A %d %B %Y'
-    
-    #change locale to fr
-    lc = locale.setlocale(locale.LC_TIME)
-    try:
-        locale.setlocale(locale.LC_TIME, 'fr_FR.utf8')
-        datetime_obj = datetime.strptime(date_str, format_str)
-    finally:
-        locale.setlocale(locale.LC_TIME, lc)
+
+    datetime_obj = dateparser.parse(date_str, 
+                                    date_formats=[format_str], 
+                                    locales=['fr-BE'])
 
     return str(datetime_obj.date())
 
@@ -132,6 +130,17 @@ def getToday(dates):
                       "dinner": "Pas de service"}
     return res
 
+def getGivenDate(ddmmyy, dates):
+    res = dict()
+    allDates = getAll(dates)
+    day = str(ddmmyy)
+    if day in allDates.keys():
+        res[day] = allDates[day]
+    else:
+        res[day] = {"lunch": "Menu non communiqué", 
+                      "dinner": "Menu non communiqué"}
+    return res   
+
 def getFromDate(date):
     # simplify date structure
     day = getDate(date)
@@ -155,13 +164,16 @@ def getAll(dates):
         res[day] = menu
     return res
 
-def getAdvanced(soup):
+def getAdvanced(soup, ddmmyy=None):
     # find menu section of page
     menu_repas = soup.find(id="menu-repas")
     # get each date section
     dates = menu_repas.find_all('h3')
     # res = getAll(dates)
-    res = getToday(dates)
+    if not ddmmyy:
+        res = getToday(dates)
+    else:
+        res = getGivenDate(ddmmyy, dates)
     return res
 
 def saveAsJSON(filename, lib):
@@ -177,7 +189,7 @@ def readJSON(filename):
     print(json.dumps(menu, indent=2, ensure_ascii=False))
     f.close()
 
-def getData():
+def getData(diff = None):
     for res in restaurants.keys():
         # get html data
         url = restaurants[res]
@@ -185,7 +197,11 @@ def getData():
 
         # organise html data
         soup = BeautifulSoup(html, 'html.parser') #, from_encoding="utf-8"
-        menu = getAdvanced(soup)
+        if not diff:
+            menu = getAdvanced(soup)
+        else:
+            ddmmyy = date.today()+timedelta(days=diff)
+            menu = getAdvanced(soup, ddmmyy)
 
         # save as JSON
         saveAsJSON(res+".json", menu)
@@ -209,7 +225,12 @@ def loadAll():
         readJSON(res+".json")
         print("\n")
 
+#input number of days until desired date
+diff_date = None
+if len(sys.argv)==2:
+    diff_date = int(sys.argv[1])
+
 http = urllib3.PoolManager()
-getData()
+getData(diff_date)
 # useHTMLData("mascaret")
 loadAll()
