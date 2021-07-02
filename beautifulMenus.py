@@ -21,7 +21,9 @@ covid_messages = [
     r"(Vente (.*?) dessert], )",
     r"(Unique(.*?) :, )",
     r"(, Fruits ou yaourt)",
-    r"(Le service (.*?) heures)"
+    r"(Le service (.*?) heures)",
+    r"(Ouverture (.*?) américaines)",
+    r"(En VAE (.*?) \[entrée, dessert\],)"
 ]
 
 empty_messages = [
